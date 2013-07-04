@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<title>Canvas Demo 5</title>
+<meta charset="UTF-8">
+
+<script type="text/javascript">
+
+window.addEventListener("load", windowLoadHandler, false);
+
+function windowLoadHandler() {
+	canvasApp();
+}
+
+function canvasApp() {
+	
+	var theCanvas = document.getElementById("my_canvas");
+	var context = theCanvas.getContext("2d");
+                  var result = document.getElementById("collision");
+	
+	init();
+	
+	var numShapes;
+	var shapes; // global object for edge bob
+	var dragIndex;
+	var dragging;
+	var mouseX;
+	var mouseY;
+	var dragHoldX;
+	var dragHoldY;
+	
+	function init() {
+		var initial_radius = 0;
+		// initial config for edge bob
+		shapes = [];
+		// initial position of the object
+		tempShape = {x:(theCanvas.width/2), y:(theCanvas.height/2), rad : 20};
+		shapes.push(tempShape);
+
+                                    tempShape = {x:(theCanvas.width/3), y:(theCanvas.height/3), rad : 40};
+		shapes.push(tempShape);
+                
+		numShapes = 2;
+                
+                                    drawScreen();		
+		theCanvas.addEventListener("mousedown", mouseDownListener, false);
+	}
+	
+	
+	function mouseDownListener(event) {
+		// alert("Inside Down Listener!");
+                                    var i = 0;		
+		//get mouse position correctly! >>> BUG HERE!
+		var bRect = theCanvas.getBoundingClientRect(); // awesome
+		mouseX = (event.clientX - bRect.left)*(theCanvas.width/bRect.width);
+		mouseY = (event.clientY - bRect.top)*(theCanvas.height/bRect.height);
+		
+		if(isHit(shapes[i], mouseX, mouseY)) 
+		{
+				// alert("HItting true!");
+                                                                        dragging = true;
+				dragHoldX = mouseX - shapes[i].x;
+				dragHoldY = mouseY - shapes[i].y;
+				dragIndex = i;
+		}		
+		
+		if (dragging) {
+			window.addEventListener("mousemove", mouseMoveListener, false);
+		}
+		theCanvas.removeEventListener("mousedown", mouseDownListener, false);
+		window.addEventListener("mouseup", mouseUpListener, false);		
+		return false;
+	}
+	
+	function mouseUpListener(event) {
+		theCanvas.addEventListener("mousedown", mouseDownListener, false);
+		window.removeEventListener("mouseup", mouseUpListener, false);
+		if (dragging) {
+			dragging = false;
+			window.removeEventListener("mousemove", mouseMoveListener, false);
+		}
+	}
+
+	function mouseMoveListener(event) {
+		var posX;
+		var posY;
+                                    var shapeRad = shapes[dragIndex].rad;
+		// var shapeRad = 10;
+		var minX = shapeRad;
+		var maxX = theCanvas.width - shapeRad;
+		var minY = shapeRad;
+		var maxY = theCanvas.height - shapeRad;
+		
+		// getting mouse position correctly 
+		var bRect = theCanvas.getBoundingClientRect();
+		mouseX = (event.clientX - bRect.left)*(theCanvas.width/bRect.width);
+		mouseY = (event.clientY - bRect.top)*(theCanvas.height/bRect.height);
+		
+		// to prevent object from dragging outside of canvas
+		posX = mouseX - dragHoldX;
+		posX = (posX < minX) ? minX : ((posX > maxX) ? maxX : posX);
+		posY = mouseY - dragHoldY;
+		posY = (posY < minY) ? minY : ((posY > maxY) ? maxY : posY);
+                
+                                    // detect collisions if any
+                                    // for this -> IDEA : if the distance between the centres of the two objects is equal to the
+                                    // sum of the radii of the two objects, then it is considered to be an impact / collision.
+                                    if(isImpact())
+                                    {
+                                        // process objects post collision                                        
+                                        result.innerHTML = "COLLISION DETECTED !!!";
+                                        // drawNewShapes();                                        
+                                    }
+                                    else
+                                    {
+                                        result.innerHTML = "";
+                                    }
+		
+		// compute / use the new positions here!		
+		shapes[dragIndex].x = posX;
+		shapes[dragIndex].y = posY;                
+                                    	
+		drawScreen();
+	}
+        
+                  function computeDistance(x1,y1,x2, y2)
+                  {
+                      // utility to compute distance b/w two points
+                      var _dx = x1-x2;
+                      var _dy = y1-y2;
+                      return Math.sqrt(_dx*_dx + _dy*_dy);
+                  }
+    
+                  function isImpact()
+                  {
+                      // FUTURE CHANGES : receiving index of objects to be processed > SPATIAL CONFIGURATION REQUIRED                      
+                      // utility to check if there has been a collision in two objects
+                      var _distance = computeDistance(shapes[0].x,shapes[0].y,shapes[1].x,shapes[1].y);
+                      var _sumRadii = shapes[0].rad + shapes[1].rad;
+                      return (_distance <= _sumRadii);                                          
+                  }
+	
+	function isHit(shape,mx,my) {		
+		// alert("Function called mx="+mx+" my= "+my);
+		var dx;
+		var dy;
+		// allowance for the radius of the object
+		dx = mx - shape.x;
+		dy = my - shape.y;		
+		// return true if mouse within periphery of the object ( for inside x^2+y^2<=r^2 )		
+		return (dx*dx + dy*dy < 100);
+	}
+	
+	function drawShapes() {
+		// utility to repaint the shapes after movement of the mouse
+                                    var i;
+                                    for(i=0;i<numShapes;i++)
+                                    {
+                                        context.fillStyle = "#ff0000";
+                                        context.beginPath();
+                                        context.arc((shapes[i].x),(shapes[i].y), shapes[i].rad, 0, 2*Math.PI, false);
+                                        context.closePath();
+                                        context.fill();                                        
+                                    }
+                                    
+	}
+        
+                  function drawNewShapes() {
+		// utility to repaint the shapes after movement of the mouse
+                                    var i;
+                                    for(i=0;i<numShapes;i++)
+                                    {
+                                        context.fillStyle = "#00ff00";
+                                        context.beginPath();
+                                        context.arc((shapes[i].x),(shapes[i].y), shapes[i].rad, 0, 2*Math.PI, false);
+                                        context.closePath();
+                                        context.fill();                                        
+                                    }
+                                    
+	}
+	
+	function drawScreen() {
+		// utility to repaint the canvas to default background
+                                    context.fillStyle = "#000";
+                                    context.fillRect(0,0,theCanvas.width,theCanvas.height);		
+		drawShapes();		
+	}	
+}
+
+</script>
+
+</head>
+
+<body>
+	<div style="top: 50px; text-align:center">
+		<h1>Demo : Hit the puck!</h1>
+                                    <span id="collision" style="color:#ff0000; size: 30px; font-weight: bold;"></span><br />
+		<canvas id="my_canvas" width="1000" height="500"></canvas>
+		<h4>How To : Click and Drag the Smaller bob to Hit the Larger bob</h4>
+	</div>
+</body>
+
+</html>

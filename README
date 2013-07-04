@@ -1,0 +1,4 @@
+Dynamic CSS Generator
+
+Sample prototypes for generating CSS on-the-fly. The application uses an HTML5 canvas object & JS to model CSS changes
+( e.g. border-radius ) using User-interactions.

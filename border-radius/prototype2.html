@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="UTF-8">
+<link href="style.css" rel="stylesheet">
+<script type="text/javascript">
+
+window.addEventListener("load", windowLoadHandler, false);
+
+function windowLoadHandler() {
+	canvasApp();
+}
+
+
+function canvasApp() {	
+	var theCanvas = document.getElementById("my_canvas");
+	var context = theCanvas.getContext("2d");
+	var numShapes;
+	var shapes;
+	var dragIndex = 1;
+	var dragging;
+	var mouseX;
+	var mouseY;
+	var dragHoldX;
+	var dragHoldY;	
+	
+	init();
+	
+	
+	function init() {
+		// number of objects
+		numShapes = 1;
+		// array to store shape objects
+		shapes = [];
+		// initial position of the objects
+		tempShape = {x:(theCanvas.width/2), y:(theCanvas.height/2), rad:10, color:"#ff0000"};
+		shapes.push(tempShape);		
+		
+		drawScreen();		
+		theCanvas.addEventListener("mousedown", mouseDownListener, false);
+	}
+	
+	
+	function mouseDownListener(event) {
+		// alert("Down Listener called");
+		var i;
+		var highestIndex = -1;		
+		//getting mouse position correctly
+		var bRect = theCanvas.getBoundingClientRect();
+		mouseX = (event.clientX - bRect.left)*(theCanvas.width/bRect.width);
+		mouseY = (event.clientY - bRect.top)*(theCanvas.height/bRect.height);
+		//find which circle was clicked
+		for (i=0; i < numShapes; i++) {
+			if(isHit(shapes[i], mouseX, mouseY)) {
+				// alert("Hitting returned true");
+				dragging = true;
+				if (i > highestIndex) {
+					dragHoldX = mouseX - shapes[i].x;
+					dragHoldY = mouseY - shapes[i].y;
+					highestIndex = i;
+					dragIndex = i;
+				}
+			}
+		}
+		
+		if (dragging) {
+			window.addEventListener("mousemove", mouseMoveListener, false);
+		}
+		theCanvas.removeEventListener("mousedown", mouseDownListener, false);
+		window.addEventListener("mouseup", mouseUpListener, false);
+		return false;
+	}
+	
+	function mouseUpListener(event) {
+		theCanvas.addEventListener("mousedown", mouseDownListener, false);
+		window.removeEventListener("mouseup", mouseUpListener, false);
+		if (dragging) {
+			dragging = false;
+			window.removeEventListener("mousemove", mouseMoveListener, false);
+		}
+	}
+
+	function mouseMoveListener(event) {
+		var posX;
+		var posY;
+		var shapeRad = shapes[dragIndex].rad;
+		var minX = shapeRad;
+		var maxX = theCanvas.width - shapeRad;
+		var minY = shapeRad;
+		var maxY = theCanvas.height - shapeRad;
+		
+		// getting mouse position correctly 
+		var bRect = theCanvas.getBoundingClientRect();
+		mouseX = (event.clientX - bRect.left)*(theCanvas.width/bRect.width);
+		mouseY = (event.clientY - bRect.top)*(theCanvas.height/bRect.height);
+		
+		// to prevent object from dragging outside of canvas
+		posX = mouseX - dragHoldX;
+		posX = (posX < minX) ? minX : ((posX > maxX) ? maxX : posX);
+		posY = mouseY - dragHoldY;
+		posY = (posY < minY) ? minY : ((posY > maxY) ? maxY : posY);
+		
+		// CHANGE HERE!!!
+                                    // check if the bob is placed at position that makes no sense
+                                    if(posX >= (theCanvas.width/2)) posX = theCanvas.width/2;
+                                    if(posY <= (theCanvas.height/2)) posY = theCanvas.height/2;               
+                
+		shapes[dragIndex].x = posX;
+		shapes[dragIndex].y = posY;		
+		// all custom usage here!		
+		drawScreen();
+	}
+	
+	function isHit(shape,mx,my) {		
+		var dx;
+		var dy;
+		// allowance for the radius of the object
+		dx = mx - shape.x;
+		dy = my - shape.y;		
+		// return true if mouse within periphery of the object ( for inside x^2+y^2<=r^2 )		
+		return (dx*dx + dy*dy < shape.rad*shape.rad);
+	}
+	
+	function abs(x)
+	{
+		if(x<0) return -1*x; else return x;
+	}
+	
+	function drawShapes() {
+		// utility to paint / repaint shapes on the canvas
+		var i;
+		for (i=0; i < numShapes; i++) {
+			// drawing the axes
+			context.strokeStyle = "#fff";		
+                                                      context.moveTo((theCanvas.width/2),shapes[i].y);		
+			context.lineTo((theCanvas.width/2),(theCanvas.height));
+			context.stroke();
+			
+                                                      context.moveTo(shapes[i].x,(theCanvas.height/2));		
+			context.lineTo(0,(theCanvas.height/2));
+			context.stroke();                     
+			
+                                                      // drawing the drag bob
+			context.fillStyle = shapes[i].color;
+			context.beginPath();
+			context.arc(shapes[i].x, shapes[i].y, shapes[i].rad, 0, 2*Math.PI, false);
+			context.closePath();
+			context.fill();
+                        
+                                                      // draw bob markers
+                                                      context.strokeStyle = "#ff0000";
+                                                      context.moveTo(shapes[i].x,shapes[i].y);		
+			context.lineTo((theCanvas.width/2),shapes[i].y);
+			context.stroke();
+                        
+                                                      context.moveTo(shapes[i].x,shapes[i].y);		
+			context.lineTo(shapes[i].x,(theCanvas.height/2));
+			context.stroke();
+		}
+		// drawing the ellipse | circle
+		var major_axis = abs(theCanvas.width/2-shapes[0].x);
+		var minor_axis = abs(shapes[0].y-theCanvas.height/2);
+		document.getElementById("css_radius1").innerHTML = Math.round(major_axis);
+		document.getElementById("css_radius2").innerHTML = Math.round(minor_axis);
+		ellipse(shapes[0].x,shapes[0].y,major_axis,minor_axis);		
+	}
+	
+	function drawScreen() {
+		// utility to paint / repaint the background canvas
+		context.fillStyle = "#000000";
+		context.fillRect(0,0,theCanvas.width,theCanvas.height);		
+                                    drawShapes();		
+	}
+	
+	function setPixel(a,b)
+	{
+		context.fillStyle = "#fff";
+		context.beginPath();
+		context.arc(a,b,1,0,2*Math.PI, false);
+		context.closePath();
+		context.fill();
+	}
+	
+	function ellipsePlotPoints (xc,yc,x,y)
+	{
+                            setPixel(xc + x, yc - y);    	
+	}
+
+	function ellipse(xc,yc,a,b)
+	{
+    	/*
+    	 * Implement the Midpoint Ellipse drawing algorithm
+    	 */
+    	var a2 = a * a;
+    	var b2 = b * b;
+    	var twoa2 = 2 * a2;
+    	var twob2 = 2 * b2;
+    	var p;
+    	var x = 0;
+    	var y = b;
+    	var px = 0;
+    	var py = twoa2 * y;
+    	ellipsePlotPoints(xc,yc,x,y);
+
+    	/* Region 1 : Before x = y */
+    	p = Math.round (b2 - (a2 * b) + (0.25 * a2));
+    	while (px < py) {
+        	x++;
+        	px += twob2;
+        	if (p < 0)
+        		p += b2 + px;
+        	else {
+        		y--;
+        		py -= twoa2;
+        		p += b2 + px - py;
+        	}
+        	ellipsePlotPoints (xc,yc, x, y);
+    	}
+
+    	/* Region 2 After x = y */
+    	p = Math.round (b2 * (x+0.5) * (x+0.5) + a2 * (y-1) * (y-1) - a2 * b2);
+    	while (y > 0) {
+        	y--;
+        	py -= twoa2;
+        	if (p > 0)
+        		p += a2 - py;
+        	else {
+        		x++;
+        		px += twob2;
+        		p += a2 - py + px;
+        	}
+        	ellipsePlotPoints (xc,yc, x, y);
+    	}
+	}	
+}
+
+</script>
+
+</head>
+
+<body>
+	<div id="container">
+		<!-- HEADER -->
+		<div id="header">
+			<h1>border-radius</h1>
+			<hr>
+		</div>
+		<!-- MAIN BODY : CANVAS + CSS -->
+		<div id="content">
+			<div id="image">
+				<!-- CANVAS -->
+				<canvas id="my_canvas" width="650" height="500">
+					
+				</canvas>
+			</div>
+			<div id="code">CSS<br>
+				<!-- CSS -->
+				<code>
+				deltaX : <span id="css_radius1">315</span>&nbsp;px<br>
+				deltaY : <span id="css_radius2">240</span>&nbsp;px
+				</code>
+			</div>		
+		</div>
+		<!-- FOOTER -->
+		<div id="footer">
+			<hr>
+			<h3><code>border-radius : [&lt;length&gt;|&lt;%&gt;] [&lt;length&gt;|&lt;%&gt;]</code></h3>
+			<h3>Instructions : Drag the red bob to set radius.</h3>
+		</div>
+	</div>	
+</body></html>
